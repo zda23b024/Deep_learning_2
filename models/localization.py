@@ -9,14 +9,7 @@ from models.layers import CustomDropout
 
 
 class VGG11Localizer(nn.Module):
-    """VGG11-based localizer.
-
-    This model reuses the VGG11 convolutional backbone as the feature extractor
-    and fine-tunes it for bounding-box regression. Fine-tuning is chosen here
-    because the pretrained classification encoder provides strong spatial
-    features, while localization still benefits from adapting those features
-    to predict precise object coordinates.
-    """
+    """VGG11-based localizer for bounding box regression."""
 
     def __init__(
         self,
@@ -24,17 +17,9 @@ class VGG11Localizer(nn.Module):
         dropout_p: float = 0.5,
         freeze_encoder: bool = False,
     ):
-        """
-        Initialize the VGG11Localizer model.
-
-        Args:
-            in_channels: Number of input channels.
-            dropout_p: Dropout probability for the localization head.
-            freeze_encoder: If True, freeze the VGG11 encoder weights.
-        """
         super(VGG11Localizer, self).__init__()
 
-        # Shared encoder (same as classification)
+        # Encoder (feature extractor)
         self.encoder = VGG11Encoder(in_channels=in_channels)
 
         if freeze_encoder:
@@ -53,28 +38,29 @@ class VGG11Localizer(nn.Module):
             nn.ReLU(inplace=True),
             CustomDropout(dropout_p),
 
-            nn.Linear(512, 4)  # Output: [x_center, y_center, width, height]
+            nn.Linear(512, 4)  # [cx, cy, w, h]
         )
 
-        self.output_activation = nn.Softplus()
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass for localization model.
+        """Forward pass.
 
         Args:
-            x: Input tensor of shape [B, in_channels, H, W].
+            x: Input tensor [B, 3, 224, 224]
 
         Returns:
-            Bounding box coordinates [B, 4]
+            Bounding boxes [B, 4] in pixel space (0–224)
+            Format: [cx, cy, w, h]
         """
-        # Extract deep features
+        # Extract features
         features = self.encoder(x)  # [B, 512, 7, 7]
 
-        # Predict bounding boxes
+        # Raw predictions
         bbox = self.regressor(features)  # [B, 4]
 
-        bbox_xy = bbox[:, :2]
-        bbox_wh = self.output_activation(bbox[:, 2:]) + 1e-3
-        bbox = torch.cat([bbox_xy, bbox_wh], dim=1)
+        # ✅ Constrain outputs to [0, 1]
+        bbox = torch.sigmoid(bbox)
+
+        # ✅ Scale to image size (224x224)
+        bbox = bbox * 224.0
 
         return bbox
