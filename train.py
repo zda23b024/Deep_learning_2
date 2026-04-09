@@ -191,10 +191,8 @@ def train_segmentation(data_dir, epochs=30, batch_size=16, lr=1e-4):
 if __name__ == "__main__":
 
     DATA_DIR = "data"
-
-      
-    print("🚀 Training Classifier...")
-    train_classifier(DATA_DIR, epochs=50, batch_size=32, lr=1e-4)
+    #print("🚀 Training Classifier...")
+    #train_classifier(DATA_DIR, epochs=50, batch_size=32, lr=1e-4)
 
     print("🚀 Training Localizer...")
     train_localizer(DATA_DIR, epochs=30, batch_size=32, lr=5e-5)
