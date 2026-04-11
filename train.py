@@ -44,7 +44,7 @@ def freeze_encoder(model):
 # =========================
 # LOCALIZER (Fixes 0.0% Acc@IoU)
 # =========================
-def train_localizer(data_dir, epochs=60, batch_size=32, lr=1e-4):
+def train_localizer(data_dir, epochs=60, batch_size=32, lr=3e-5):
     wandb.init(project="da6401_assignment2", name="localizer_training")
     dataset = OxfordIIITPetDataset(root_dir=data_dir)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2)
@@ -70,7 +70,7 @@ def train_localizer(data_dir, epochs=60, batch_size=32, lr=1e-4):
 
             preds = model(images)
             # Weighted loss to favor IoU overlap over simple distance
-            loss = mse_loss(preds, boxes) + 20.0 * iou_loss(preds, boxes)
+            loss = 0.5 * mse_loss(preds, boxes) + 5.0 * iou_loss(preds, boxes)
 
             optimizer.zero_grad(); loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0); optimizer.step()
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     #train_segmentation(DATA_DIR, epochs=50, batch_size=32, lr=1e-4)
 
     print("🚀 Training Localizer...")
-    train_localizer(DATA_DIR, epochs=60, batch_size=32, lr=1e-4)
+    train_localizer(DATA_DIR, epochs=60, batch_size=32, lr=3e-5)
     
     #print("🚀 Training Segmentation...")
     #train_segmentation(DATA_DIR, epochs=30, batch_size=16, lr=1e-4)
